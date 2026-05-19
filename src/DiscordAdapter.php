@@ -10,6 +10,8 @@ use BootDesk\ChatSDK\Core\Contracts\Adapter;
 use BootDesk\ChatSDK\Core\Contracts\FormatConverter;
 use BootDesk\ChatSDK\Core\Contracts\HandlesReactions;
 use BootDesk\ChatSDK\Core\Contracts\HandlesSlashCommands;
+use BootDesk\ChatSDK\Core\Contracts\SupportsDeleteMessages;
+use BootDesk\ChatSDK\Core\Contracts\SupportsEditMessages;
 use BootDesk\ChatSDK\Core\Exceptions\AdapterException;
 use BootDesk\ChatSDK\Core\Exceptions\AuthenticationException;
 use BootDesk\ChatSDK\Core\FetchOptions;
@@ -25,7 +27,7 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands
+class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands, SupportsDeleteMessages, SupportsEditMessages
 {
     protected ?string $botUserId = null;
 
@@ -137,6 +139,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands
             'text' => $text,
             'userId' => $user['id'] ?? '',
             'isBot' => $user['bot'] ?? false,
+            'isMe' => false,
             'channelId' => $encodedChannelId,
             'triggerId' => null,
             'raw' => $body,

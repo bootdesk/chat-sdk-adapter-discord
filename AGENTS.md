@@ -25,6 +25,11 @@ new DiscordAdapter(
 ## thread ID format
 `discord:{channelId}:{messageId}` — e.g. `discord:123456789:987654321`
 
+## contracts implemented
+- `HandlesReactions` — `parseReaction()` via Discord Interactions
+- `HandlesSlashCommands` — `parseSlashCommand()` for Application Commands
+- `SupportsEditMessages` / `SupportsDeleteMessages` — edit/delete via Discord REST API
+
 ## webhook flow
 1. `verifyWebhook` — verifies Ed25519 signature from `X-Signature-Ed25519` + `X-Signature-Timestamp` headers; handles `PING` interaction
 2. `parseWebhook` — handles MESSAGE_CREATE events and Application Command interactions

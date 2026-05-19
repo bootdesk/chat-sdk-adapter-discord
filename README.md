@@ -83,6 +83,9 @@ Discord sends Interactions via POST to your endpoint. Verify requests using Ed25
 
 Supports slash commands, buttons, select menus, modals, and application commands.
 
+## Documentationn
+Full API documentation: https://bootdesk.github.io/chat-sdk
+
 ## License
 
 MIT
