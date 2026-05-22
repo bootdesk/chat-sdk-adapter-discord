@@ -135,6 +135,12 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
         );
 
         return [
+            'author' => new Author(
+                id: $user['id'] ?? '',
+                name: $user['global_name'] ?? ($user['username'] ?? ''),
+                isBot: $user['bot'] ?? false,
+                profilePicture: $this->getAvatarUrl($user['id'] ?? null, $user['avatar'] ?? null),
+            ),
             'command' => $command,
             'text' => $text,
             'userId' => $user['id'] ?? '',
@@ -174,8 +180,15 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
         ]);
 
         $userId = $data['user_id'] ?? '';
+        $memberUser = $data['member']['user'] ?? [];
 
         return [
+            'author' => new Author(
+                id: $userId,
+                name: $memberUser['global_name'] ?? ($memberUser['username'] ?? null),
+                isBot: $memberUser['bot'] ?? false,
+                profilePicture: $this->getAvatarUrl($userId ?: null, $memberUser['avatar'] ?? null),
+            ),
             'emoji' => $rawEmoji,
             'rawEmoji' => $rawEmoji,
             'added' => $type === 'GATEWAY_MESSAGE_REACTION_ADD',
@@ -226,6 +239,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
                 id: $user['id'] ?? '',
                 name: $user['global_name'] ?? ($user['username'] ?? ''),
                 isBot: $user['bot'] ?? false,
+                profilePicture: $this->getAvatarUrl($user['id'] ?? null, $user['avatar'] ?? null),
             ),
             text: $text,
             attachments: $this->extractAttachments($interaction['data']['resolved']['attachments'] ?? []),
@@ -412,7 +426,11 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
             $messages[] = new Message(
                 id: $msg['id'],
                 threadId: $threadId,
-                author: new Author(id: $msg['author']['id'] ?? '', isBot: $msg['author']['bot'] ?? false),
+                author: new Author(
+                    id: $msg['author']['id'] ?? '',
+                    isBot: $msg['author']['bot'] ?? false,
+                    profilePicture: $this->getAvatarUrl($msg['author']['id'] ?? null, $msg['author']['avatar'] ?? null),
+                ),
                 text: $msg['content'] ?? '',
             );
         }
@@ -529,6 +547,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
                 id: $user['id'] ?? '',
                 name: $user['global_name'] ?? ($user['username'] ?? ''),
                 isBot: $user['bot'] ?? false,
+                profilePicture: $this->getAvatarUrl($user['id'] ?? null, $user['avatar'] ?? null),
             ),
             text: $decoded['actionId'].($decoded['value'] ? ": {$decoded['value']}" : ''),
             raw: $rawBody,
@@ -561,6 +580,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
                 id: $author['id'] ?? '',
                 name: $author['global_name'] ?? ($author['username'] ?? ''),
                 isBot: $author['bot'] ?? false,
+                profilePicture: $this->getAvatarUrl($author['id'] ?? null, $author['avatar'] ?? null),
             ),
             text: $text,
             attachments: $this->extractAttachments($data['attachments'] ?? []),
@@ -634,6 +654,17 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
         }
 
         return ['content' => $content];
+    }
+
+    protected function getAvatarUrl(?string $userId, ?string $avatarHash): ?string
+    {
+        if ($avatarHash === null || $avatarHash === '' || $userId === null || $userId === '') {
+            return null;
+        }
+
+        $ext = str_starts_with($avatarHash, 'a_') ? 'gif' : 'webp';
+
+        return "https://cdn.discordapp.com/avatars/{$userId}/{$avatarHash}.{$ext}?size=1024";
     }
 
     protected function apiCall(string $endpoint, array $params, string $method = 'POST'): array
