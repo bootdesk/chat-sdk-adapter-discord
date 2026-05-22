@@ -12,12 +12,12 @@ Requires a PSR-18 HTTP client (`guzzlehttp/guzzle`, `symfony/http-client`, etc.)
 
 ## Configuration
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `bot_token` | Discord Bot Token | `MTk4NjIy...` |
-| `http_client` | PSR-18 HTTP client instance | `new GuzzleHttp\Client` |
-| `public_key` | Application Public Key | `abcdef123456...` |
-| `application_id` | Discord Application ID | `1234567890` |
+| Variable         | Description                 | Example                 |
+| ---------------- | --------------------------- | ----------------------- |
+| `bot_token`      | Discord Bot Token           | `MTk4NjIy...`           |
+| `http_client`    | PSR-18 HTTP client instance | `new GuzzleHttp\Client` |
+| `public_key`     | Application Public Key      | `abcdef123456...`       |
+| `application_id` | Discord Application ID      | `1234567890`            |
 
 ```php
 use BootDesk\ChatSDK\Discord\DiscordAdapter;
@@ -54,9 +54,9 @@ $adapter->postMessage('discord:1234567890:9876543210', 'Thread reply');
 
 ## Thread ID Format
 
-| Format | Description |
-|--------|-------------|
-| `discord:{channelId}` | Channel message |
+| Format                            | Description                 |
+| --------------------------------- | --------------------------- |
+| `discord:{channelId}`             | Channel message             |
 | `discord:{channelId}:{messageId}` | Reply to a specific message |
 
 ## Webhook
@@ -65,25 +65,27 @@ Discord sends Interactions via POST to your endpoint. Verify requests using Ed25
 
 ## Feature Matrix
 
-| Feature | Supported |
-|---------|-----------|
-| Post messages | ✓ |
-| Edit messages | ✓ |
-| Delete messages | ✓ |
-| Reactions | ✓ |
-| Typing indicator | ✓ |
-| Fetch messages | ✓ |
-| Fetch thread info | ✓ |
-| Fetch channel info | ✓ |
-| Get user | ✓ |
-| Open DM | ✗ |
-| Stream | ✓ |
+| Feature            | Supported |
+| ------------------ | --------- |
+| Post messages      | ✓         |
+| Edit messages      | ✓         |
+| Delete messages    | ✓         |
+| Reactions          | ✓         |
+| Slash commands     | ✓         |
+| Typing indicator   | ✓         |
+| Fetch messages     | ✓         |
+| Fetch thread info  | ✓         |
+| Fetch channel info | ✓         |
+| Get user           | ✓         |
+| Open DM            | ✗         |
+| Stream             | ✓         |
 
 ## Notes
 
 Supports slash commands, buttons, select menus, modals, and application commands.
 
 ## Documentationn
+
 Full API documentation: https://bootdesk.github.io/chat-sdk
 
 ## License

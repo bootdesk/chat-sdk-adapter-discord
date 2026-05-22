@@ -183,6 +183,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
             'messageId' => $data['message_id'] ?? '',
             'userId' => $userId,
             'raw' => $interaction,
+            'originId' => null,
         ];
     }
 

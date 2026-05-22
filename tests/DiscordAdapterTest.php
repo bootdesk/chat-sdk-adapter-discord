@@ -640,4 +640,115 @@ class DiscordAdapterTest extends TestCase
         $this->expectException(AuthenticationException::class);
         $adapter->postMessage('discord:G456:C123', PostableMessage::text('test'));
     }
+
+    // --- Fixture-based tests from discord.json ---
+
+    public function test_fixture_gateway_mention(): void
+    {
+        $this->adapter->initialize($this->createMock(Chat::class));
+
+        $fixture = json_decode(
+            file_get_contents(__DIR__.'/fixtures/discord.json'),
+            true
+        );
+
+        $payload = $fixture['gatewayMention'];
+        $request = $this->factory->createServerRequest('POST', '/webhooks/discord')
+            ->withHeader('X-Signature-Ed25519', 'sig')
+            ->withHeader('X-Signature-Timestamp', (string) $payload['timestamp'])
+            ->withBody($this->factory->createStream(json_encode($payload)));
+
+        $message = $this->adapter->parseWebhook($request);
+
+        $this->assertSame($payload['data']['id'], $message->id);
+        $this->assertStringContainsString('Hey', $message->text);
+        $this->assertSame('1033044521375764530', $message->author->id);
+        $this->assertSame('Test User', $message->author->name);
+        $this->assertFalse($message->isDM);
+    }
+
+    public function test_fixture_button_click_hello(): void
+    {
+        $fixture = json_decode(
+            file_get_contents(__DIR__.'/fixtures/discord.json'),
+            true
+        );
+
+        $payload = $fixture['buttonClickHello'];
+        $request = $this->factory->createServerRequest('POST', '/webhooks/discord')
+            ->withBody($this->factory->createStream(json_encode($payload)));
+
+        $message = $this->adapter->parseWebhook($request);
+
+        $this->assertSame($payload['id'], $message->id);
+        $this->assertStringContainsString('hello', $message->text);
+        // Component interactions in threads return thread as channel_id
+        $this->assertSame('discord:1457468924290662599:1457536551830421524', $message->threadId);
+    }
+
+    public function test_fixture_gateway_reaction_add(): void
+    {
+        $fixture = json_decode(
+            file_get_contents(__DIR__.'/fixtures/discord.json'),
+            true
+        );
+
+        $payload = $fixture['gatewayReactionAdd'];
+        $request = $this->factory->createServerRequest('POST', '/webhooks/discord')
+            ->withHeader('X-Signature-Ed25519', 'sig')
+            ->withHeader('X-Signature-Timestamp', (string) $payload['timestamp'])
+            ->withBody($this->factory->createStream(json_encode($payload)));
+
+        $result = $this->adapter->parseReaction($request);
+
+        $this->assertNotNull($result);
+        $this->assertSame('👍', $result['emoji']);
+        $this->assertTrue($result['added']);
+        $this->assertSame($payload['data']['message_id'], $result['messageId']);
+        $this->assertSame('discord:1457468924290662599:1457536551830421524', $result['threadId']);
+    }
+
+    public function test_fixture_dm_button_click(): void
+    {
+        $fixture = json_decode(
+            file_get_contents(__DIR__.'/fixtures/discord.json'),
+            true
+        );
+
+        $payload = $fixture['dmButtonClick'];
+        $request = $this->factory->createServerRequest('POST', '/webhooks/discord')
+            ->withBody($this->factory->createStream(json_encode($payload)));
+
+        $message = $this->adapter->parseWebhook($request);
+
+        // DM button clicks have context=1 and channel type 1
+        $this->assertSame($payload['id'], $message->id);
+        $this->assertStringContainsString('dm-action', $message->text);
+    }
+
+    public function test_fixture_gateway_thread_message(): void
+    {
+        $this->adapter->initialize($this->createMock(Chat::class));
+
+        $fixture = json_decode(
+            file_get_contents(__DIR__.'/fixtures/discord.json'),
+            true
+        );
+
+        $payload = $fixture['gatewayThreadUserHey'];
+        $request = $this->factory->createServerRequest('POST', '/webhooks/discord')
+            ->withHeader('X-Signature-Ed25519', 'sig')
+            ->withHeader('X-Signature-Timestamp', (string) $payload['timestamp'])
+            ->withBody($this->factory->createStream(json_encode($payload)));
+
+        // Gateway message in a thread
+        $message = $this->adapter->parseWebhook($request);
+
+        $this->assertSame($payload['data']['id'], $message->id);
+        $this->assertSame('Hey', $message->text);
+        // Discord gateway events for thread messages don't include parent_id
+        // Adapter encodes as: discord:guild:threadChannelId:threadChannelId
+        $this->assertSame('discord:1457468924290662599:1457536551830421524:1457536551830421524', $message->threadId);
+        $this->assertSame('Test User', $message->author->name);
+    }
 }
