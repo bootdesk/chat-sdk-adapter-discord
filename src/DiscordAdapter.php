@@ -10,6 +10,7 @@ use BootDesk\ChatSDK\Core\Contracts\Adapter;
 use BootDesk\ChatSDK\Core\Contracts\FormatConverter;
 use BootDesk\ChatSDK\Core\Contracts\HandlesReactions;
 use BootDesk\ChatSDK\Core\Contracts\HandlesSlashCommands;
+use BootDesk\ChatSDK\Core\Contracts\RequiresSyncResponse;
 use BootDesk\ChatSDK\Core\Contracts\SupportsDeleteMessages;
 use BootDesk\ChatSDK\Core\Contracts\SupportsEditMessages;
 use BootDesk\ChatSDK\Core\Exceptions\AdapterException;
@@ -27,7 +28,7 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands, SupportsDeleteMessages, SupportsEditMessages
+class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands, RequiresSyncResponse, SupportsDeleteMessages, SupportsEditMessages
 {
     protected ?string $botUserId = null;
 
