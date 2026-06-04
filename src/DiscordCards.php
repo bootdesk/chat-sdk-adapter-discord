@@ -138,22 +138,6 @@ class DiscordCards
 
     private static function convertTableToDiscord(Table $table): string
     {
-        $lines = [];
-        $lines[] = '| '.implode(' | ', $table->headers).' |';
-        $separators = [];
-        foreach (array_keys($table->headers) as $i) {
-            $align = $table->align[$i] ?? null;
-            $separators[] = match ($align?->value) {
-                'center' => ':---:',
-                'right' => '---:',
-                default => '---',
-            };
-        }
-        $lines[] = '| '.implode(' | ', $separators).' |';
-        foreach ($table->rows as $row) {
-            $lines[] = '| '.implode(' | ', $row).' |';
-        }
-
-        return implode("\n", $lines);
+        return Table::renderAsText($table);
     }
 }
