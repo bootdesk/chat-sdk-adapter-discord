@@ -702,7 +702,8 @@ class DiscordAdapterTest extends TestCase
         $result = $this->adapter->parseReaction($request);
 
         $this->assertNotNull($result);
-        $this->assertSame('👍', $result['emoji']);
+        $this->assertSame('thumbs_up', $result['emoji']);
+        $this->assertSame('👍', $result['rawEmoji']);
         $this->assertTrue($result['added']);
         $this->assertSame($payload['data']['message_id'], $result['messageId']);
         $this->assertSame('discord:1457468924290662599:1457536551830421524', $result['threadId']);

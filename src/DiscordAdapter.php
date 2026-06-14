@@ -20,6 +20,7 @@ use BootDesk\ChatSDK\Core\FetchResult;
 use BootDesk\ChatSDK\Core\Message;
 use BootDesk\ChatSDK\Core\PostableMessage;
 use BootDesk\ChatSDK\Core\SentMessage;
+use BootDesk\ChatSDK\Core\Support\EmojiResolver;
 use BootDesk\ChatSDK\Core\ThreadInfo;
 use BootDesk\ChatSDK\Core\UserInfo;
 use Http\Message\MultipartStream\MultipartStreamBuilder;
@@ -36,6 +37,8 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
 
     protected ?DiscordWebhookVerifier $webhookVerifier = null;
 
+    protected EmojiResolver $emojiResolver;
+
     public function __construct(
         protected readonly string $botToken,
         protected readonly ClientInterface $httpClient,
@@ -43,8 +46,10 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
         protected readonly string $applicationId,
         protected readonly string $apiUrl = 'https://discord.com/api/v10',
         protected readonly ?Psr17Factory $psrFactory = null,
+        ?EmojiResolver $emojiResolver = null,
     ) {
         $this->formatConverter = new DiscordFormatConverter;
+        $this->emojiResolver = $emojiResolver ?? EmojiResolver::default();
         $this->webhookVerifier = new DiscordWebhookVerifier($publicKey);
     }
 
@@ -190,7 +195,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
                 isBot: $memberUser['bot'] ?? false,
                 profilePicture: $this->getAvatarUrl($userId ?: null, $memberUser['avatar'] ?? null),
             ),
-            'emoji' => $rawEmoji,
+            'emoji' => $this->emojiResolver->fromGChat($rawEmoji),
             'rawEmoji' => $rawEmoji,
             'added' => $type === 'GATEWAY_MESSAGE_REACTION_ADD',
             'threadId' => $threadId,
@@ -391,7 +396,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
     {
         $decoded = $this->decodeThreadId($threadId);
         $channelId = $decoded['threadId'] ?? $decoded['channelId'];
-        $encodedEmoji = urlencode($emoji);
+        $encodedEmoji = urlencode($this->emojiResolver->toDiscord($emoji));
 
         $this->apiCall("/channels/{$channelId}/messages/{$messageId}/reactions/{$encodedEmoji}/@me", [], 'PUT');
     }
@@ -400,7 +405,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
     {
         $decoded = $this->decodeThreadId($threadId);
         $channelId = $decoded['threadId'] ?? $decoded['channelId'];
-        $encodedEmoji = urlencode($emoji);
+        $encodedEmoji = urlencode($this->emojiResolver->toDiscord($emoji));
 
         $this->apiCall("/channels/{$channelId}/messages/{$messageId}/reactions/{$encodedEmoji}/@me", [], 'DELETE');
     }

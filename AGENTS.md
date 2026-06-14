@@ -19,8 +19,11 @@ new DiscordAdapter(
     string $publicKey,
     ClientInterface $httpClient,
     ?Psr17Factory $psrFactory = null,
+    ?EmojiResolver $emojiResolver = null,  // defaults to EmojiResolver::default()
 );
 ```
+
+- `EmojiResolver` normalizes incoming reactions (`parseReaction` → `emoji` field via `fromGChat()`) and outgoing reactions (`addReaction`/`removeReaction` → converts to unicode via `toDiscord()`)
 
 ## thread ID format
 `discord:{channelId}:{messageId}` — e.g. `discord:123456789:987654321`
