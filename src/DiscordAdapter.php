@@ -7,12 +7,11 @@ use BootDesk\ChatSDK\Core\Author;
 use BootDesk\ChatSDK\Core\ChannelInfo;
 use BootDesk\ChatSDK\Core\Chat;
 use BootDesk\ChatSDK\Core\Contracts\Adapter;
+use BootDesk\ChatSDK\Core\Contracts\CompositeInterfaces\SupportsMessageMutability;
 use BootDesk\ChatSDK\Core\Contracts\FormatConverter;
 use BootDesk\ChatSDK\Core\Contracts\HandlesReactions;
 use BootDesk\ChatSDK\Core\Contracts\HandlesSlashCommands;
 use BootDesk\ChatSDK\Core\Contracts\RequiresSyncResponse;
-use BootDesk\ChatSDK\Core\Contracts\SupportsDeleteMessages;
-use BootDesk\ChatSDK\Core\Contracts\SupportsEditMessages;
 use BootDesk\ChatSDK\Core\Exceptions\AdapterException;
 use BootDesk\ChatSDK\Core\Exceptions\AuthenticationException;
 use BootDesk\ChatSDK\Core\FetchOptions;
@@ -29,7 +28,7 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands, RequiresSyncResponse, SupportsDeleteMessages, SupportsEditMessages
+class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands, RequiresSyncResponse, SupportsMessageMutability
 {
     protected ?string $botUserId = null;
 
@@ -454,8 +453,37 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
         return new ThreadInfo(
             id: $threadId,
             channelId: $response['parent_id'] ?? $channelId,
+            title: $response['name'] ?? null,
             messageCount: $response['message_count'] ?? 0,
+            topic: $response['topic'] ?? null,
+            isArchived: $response['thread_metadata']['archived'] ?? null,
         );
+    }
+
+    public function editThread(string $threadId, ThreadInfo $threadInfo): ThreadInfo
+    {
+        $decoded = $this->decodeThreadId($threadId);
+        $channelId = $decoded['threadId'] ?? $decoded['channelId'];
+
+        $params = [];
+
+        if ($threadInfo->title !== null) {
+            $params['name'] = $threadInfo->title;
+        }
+
+        if ($threadInfo->topic !== null) {
+            $params['topic'] = $threadInfo->topic;
+        }
+
+        if ($threadInfo->isArchived !== null) {
+            $params['archived'] = $threadInfo->isArchived;
+        }
+
+        if ($params !== []) {
+            $this->apiCall("/channels/{$channelId}", $params, 'PATCH');
+        }
+
+        return $this->fetchThread($threadId);
     }
 
     public function fetchChannelInfo(string $channelId): ?ChannelInfo
