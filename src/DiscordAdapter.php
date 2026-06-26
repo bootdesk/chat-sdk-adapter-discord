@@ -281,7 +281,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
     {
         $decoded = $this->decodeThreadId($threadId);
 
-        return $decoded['threadId'] ?? $decoded['channelId'];
+        return "discord:{$decoded['guildId']}:{$decoded['channelId']}";
     }
 
     public function postMessage(string $threadId, PostableMessage $message): SentMessage
@@ -488,10 +488,17 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
 
     public function fetchChannelInfo(string $channelId): ?ChannelInfo
     {
-        $response = $this->apiCall("/channels/{$channelId}", [], 'GET');
+        $parts = explode(':', $channelId, 4);
+        $discordChannelId = $parts[3] ?? $parts[2] ?? '';
+
+        if ($discordChannelId === '') {
+            return null;
+        }
+
+        $response = $this->apiCall("/channels/{$discordChannelId}", [], 'GET');
 
         return new ChannelInfo(
-            id: $response['id'],
+            id: $channelId,
             name: $response['name'] ?? '',
             topic: $response['topic'] ?? null,
             isPrivate: ($response['type'] ?? 0) === 1,

@@ -157,12 +157,12 @@ class DiscordAdapterTest extends TestCase
 
     public function test_channel_id_from_thread_returns_thread_id(): void
     {
-        $this->assertSame('T789', $this->adapter->channelIdFromThreadId('discord:G456:C123:T789'));
+        $this->assertSame('discord:G456:C123', $this->adapter->channelIdFromThreadId('discord:G456:C123:T789'));
     }
 
     public function test_channel_id_from_thread_returns_channel_when_no_thread(): void
     {
-        $this->assertSame('C123', $this->adapter->channelIdFromThreadId('discord:G456:C123'));
+        $this->assertSame('discord:G456:C123', $this->adapter->channelIdFromThreadId('discord:G456:C123'));
     }
 
     public function test_ping_pong_response(): void
@@ -540,9 +540,9 @@ class DiscordAdapterTest extends TestCase
 
     public function test_fetch_channel_info(): void
     {
-        $info = $this->adapter->fetchChannelInfo('C123');
+        $info = $this->adapter->fetchChannelInfo('discord:@me:C123');
 
-        $this->assertSame('C123', $info->id);
+        $this->assertSame('discord:@me:C123', $info->id);
         $this->assertSame('general', $info->name);
         $this->assertSame('Chat here', $info->topic);
         $this->assertFalse($info->isPrivate);
