@@ -293,6 +293,24 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
             return $this->postMessageWithFiles($channelId, $message);
         }
 
+        // Location fallback — no native outgoing support, append maps link to text
+        if ($message->attachments !== [] && $message->attachments[0]->type === 'location') {
+            $att = $message->attachments[0];
+            $locText = "https://www.google.com/maps?q={$att->lat},{$att->lng}";
+            if ($att->name !== null) {
+                $locText = $att->name."\n".$locText;
+            }
+            if ($att->address !== null) {
+                $locText .= "\n".$att->address;
+            }
+            $originalText = $message->getTextContent();
+            $mergedText = $originalText !== '' ? $originalText."\n\n".$locText : $locText;
+            $message = new PostableMessage(
+                content: $mergedText,
+                replyToMessageId: $message->replyToMessageId,
+            );
+        }
+
         $params = $this->buildMessageParams($message);
 
         // Add file/image URLs as embeds
@@ -614,6 +632,51 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
 
         $isMention = $data['is_mention'] ?? false;
 
+        $attachments = $this->extractAttachments($data['attachments'] ?? []);
+
+        foreach ($data['sticker_items'] ?? [] as $sticker) {
+            $attachments[] = new Attachment(
+                type: 'sticker',
+                name: $sticker['name'] ?? null,
+                mimeType: 'image/png',
+                fetchMetadata: [
+                    'sticker_id' => $sticker['id'] ?? null,
+                    'format_type' => $sticker['format_type'] ?? null,
+                ],
+            );
+        }
+
+        foreach ($data['embeds'] ?? [] as $embed) {
+            $embedUrl = $embed['url'] ?? null;
+            $embedTitle = $embed['title'] ?? null;
+
+            if (isset($embed['image']['url'])) {
+                $attachments[] = new Attachment(
+                    type: 'image',
+                    url: $embed['image']['url'],
+                    name: $embedTitle,
+                );
+            } elseif (isset($embed['video']['url'])) {
+                $attachments[] = new Attachment(
+                    type: 'video',
+                    url: $embed['video']['url'],
+                    name: $embedTitle,
+                );
+            } elseif (isset($embed['thumbnail']['url'])) {
+                $attachments[] = new Attachment(
+                    type: 'image',
+                    url: $embed['thumbnail']['url'],
+                    name: $embedTitle,
+                );
+            } elseif ($embedUrl !== null) {
+                $attachments[] = new Attachment(
+                    type: 'embed',
+                    url: $embedUrl,
+                    name: $embedTitle,
+                );
+            }
+        }
+
         return new Message(
             id: $data['id'] ?? uniqid('dc_'),
             threadId: $threadId,
@@ -624,7 +687,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
                 profilePicture: $this->getAvatarUrl($author['id'] ?? null, $author['avatar'] ?? null),
             ),
             text: $text,
-            attachments: $this->extractAttachments($data['attachments'] ?? []),
+            attachments: $attachments,
             isMention: $isMention,
             isDM: $guildId === '@me',
             raw: $rawBody,
