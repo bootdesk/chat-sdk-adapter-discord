@@ -463,7 +463,7 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
 
         $params = ['limit' => $options->limit ?? 50];
 
-        $response = $this->apiCall("/channels/{$channelId}/messages?".http_build_query($params), [], 'GET');
+        $response = $this->apiCall("/channels/{$channelId}/messages", $params, 'GET');
 
         $messages = [];
         foreach ($response as $msg) {
@@ -803,6 +803,10 @@ class DiscordAdapter implements Adapter, HandlesReactions, HandlesSlashCommands,
         ]);
 
         if ($method === 'GET') {
+            if ($params !== []) {
+                $url .= (str_contains($url, '?') ? '&' : '?').http_build_query($params);
+            }
+
             $request = $factory->createRequest('GET', $url)
                 ->withHeader('Authorization', "Bot {$this->botToken}");
         } else {

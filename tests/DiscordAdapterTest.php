@@ -752,4 +752,142 @@ class DiscordAdapterTest extends TestCase
         $this->assertSame('discord:1457468924290662599:1457536551830421524:1457536551830421524', $message->threadId);
         $this->assertSame('Test User', $message->author->name);
     }
+
+    // --- GET query params tests ---
+
+    public function test_fetch_messages_sends_params_as_query_string(): void
+    {
+        $capturedUri = null;
+        $spy = $this->createSpyClient(
+            onRequest: function (RequestInterface $request) use (&$capturedUri): void {
+                $capturedUri = (string) $request->getUri();
+            },
+            responseBody: [
+                ['id' => '111', 'content' => 'Hello', 'author' => ['id' => 'U1', 'bot' => false]],
+            ],
+        );
+
+        $adapter = new DiscordAdapter(
+            botToken: 'test-bot-token',
+            publicKey: str_repeat('a', 64),
+            applicationId: 'APP123',
+            httpClient: $spy,
+            psrFactory: $this->factory,
+        );
+
+        $result = $adapter->fetchMessages('discord:guild:C123');
+
+        $this->assertNotNull($capturedUri);
+        $this->assertStringContainsString('/channels/C123/messages', $capturedUri);
+        $this->assertStringContainsString('limit=50', $capturedUri);
+    }
+
+    public function test_api_call_get_with_params_appends_query_string(): void
+    {
+        $capturedUri = null;
+        $spy = $this->createSpyClient(function (RequestInterface $request) use (&$capturedUri): void {
+            $capturedUri = (string) $request->getUri();
+        });
+
+        $adapter = new DiscordAdapter(
+            botToken: 'test-bot-token',
+            publicKey: str_repeat('a', 64),
+            applicationId: 'APP123',
+            httpClient: $spy,
+            psrFactory: $this->factory,
+        );
+
+        $apiCall = \Closure::bind(
+            fn (string $endpoint, array $params, string $method = 'POST') => $this->apiCall($endpoint, $params, $method),
+            $adapter,
+            DiscordAdapter::class,
+        );
+
+        $apiCall('/guilds/G123/members', ['limit' => 100, 'after' => 'U999'], 'GET');
+
+        $this->assertNotNull($capturedUri);
+        $this->assertStringContainsString('limit=100', $capturedUri);
+        $this->assertStringContainsString('after=U999', $capturedUri);
+    }
+
+    public function test_api_call_get_without_params_no_query_string(): void
+    {
+        $capturedUri = null;
+        $spy = $this->createSpyClient(function (RequestInterface $request) use (&$capturedUri): void {
+            $capturedUri = (string) $request->getUri();
+        });
+
+        $adapter = new DiscordAdapter(
+            botToken: 'test-bot-token',
+            publicKey: str_repeat('a', 64),
+            applicationId: 'APP123',
+            httpClient: $spy,
+            psrFactory: $this->factory,
+        );
+
+        $apiCall = \Closure::bind(
+            fn (string $endpoint, array $params, string $method = 'POST') => $this->apiCall($endpoint, $params, $method),
+            $adapter,
+            DiscordAdapter::class,
+        );
+
+        $apiCall('/users/U123', [], 'GET');
+
+        $this->assertNotNull($capturedUri);
+        $this->assertStringNotContainsString('?', $capturedUri);
+    }
+
+    public function test_api_call_post_still_sends_params_as_body(): void
+    {
+        $capturedUri = null;
+        $capturedBody = null;
+        $spy = $this->createSpyClient(function (RequestInterface $request) use (&$capturedUri, &$capturedBody): void {
+            $capturedUri = (string) $request->getUri();
+            $capturedBody = (string) $request->getBody();
+        });
+
+        $adapter = new DiscordAdapter(
+            botToken: 'test-bot-token',
+            publicKey: str_repeat('a', 64),
+            applicationId: 'APP123',
+            httpClient: $spy,
+            psrFactory: $this->factory,
+        );
+
+        $apiCall = \Closure::bind(
+            fn (string $endpoint, array $params, string $method = 'POST') => $this->apiCall($endpoint, $params, $method),
+            $adapter,
+            DiscordAdapter::class,
+        );
+
+        $apiCall('/channels/C123/messages', ['content' => 'Hello'], 'POST');
+
+        $this->assertNotNull($capturedBody);
+        $body = json_decode($capturedBody, true);
+        $this->assertSame('Hello', $body['content']);
+        $this->assertStringNotContainsString('?', $capturedUri);
+    }
+
+    private function createSpyClient(callable $onRequest, mixed $responseBody = null): ClientInterface
+    {
+        return new class($this->factory, $onRequest, $responseBody) implements ClientInterface
+        {
+            public function __construct(
+                private Psr17Factory $factory,
+                private \Closure $onRequest,
+                private mixed $responseBody = null,
+            ) {}
+
+            public function sendRequest(RequestInterface $request): ResponseInterface
+            {
+                ($this->onRequest)($request);
+
+                $body = $this->responseBody ?? ['id' => 'mock'];
+
+                return $this->factory->createResponse(200)->withBody(
+                    $this->factory->createStream(json_encode($body))
+                );
+            }
+        };
+    }
 }
